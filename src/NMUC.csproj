@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>disable</Nullable>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Reference Include="../libs/nonlic/*.dll">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="../libs/*.dll">
+			<Private>false</Private>
+		</Reference>
+	</ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="Exists('$(RAIN_WORLD_DIR)')">
+		<ItemGroup>
+			<Assets Include="$(ProjectDir)../assets/**/*.*" />
+		</ItemGroup>
+		<Copy SourceFiles="$(TargetPath);$(TargetDir)$(TargetName).pdb" DestinationFolder="$(RAIN_WORLD_DIR)/RainWorld_Data/StreamingAssets/mods/nmuc/plugins" />
+		<Copy SourceFiles="@(Assets)" DestinationFiles="$(RAIN_WORLD_DIR)/RainWorld_Data/StreamingAssets/mods/nmuc/%(RecursiveDir)%(Filename)%(Extension)" />
+	</Target>
+
+</Project>

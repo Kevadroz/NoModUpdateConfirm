@@ -1,0 +1,10 @@
+{
+	"id": "kevadroz.no_mod_update_confirm",
+	"name": "No Mod Update Confirm",
+	"version": "1",
+	"authors": "Kevadroz",
+	"description": "Automatically confirms the \"mods have updated\" screen.",
+	"requirements": [],
+	"requirements_names": [],
+	"checksum_override_version": true
+}
