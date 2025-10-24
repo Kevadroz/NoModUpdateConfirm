@@ -17,7 +17,6 @@ namespace NMUC;
 [BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
 
 public class NoModUpdateConfirm : BaseUnityPlugin {
-
 	public const string PLUGIN_GUID = "kevadroz.no_mod_update_confirm";
 	public const string PLUGIN_NAME = "No Mod Update Confirm";
 	public const string PLUGIN_VERSION = "1.0.0";
@@ -27,9 +26,7 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 	public static new ManualLogSource Logger { get; private set; }
 
 	private static readonly Dictionary<WeakReference<DialogBoxNotify>, float> trackedDialogs = [];
-
 	private static bool ShouldClickNow( DialogBoxNotify dialog ) {
-
 		List<WeakReference<DialogBoxNotify>> referencesToRemove = [];
 
 		foreach ( KeyValuePair<WeakReference<DialogBoxNotify>, float> entry in trackedDialogs ) {
@@ -68,8 +65,6 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 			trackedDialogs.Add(new WeakReference<DialogBoxNotify>(dialog), float.NegativeInfinity);
 			return true;
 		}
-
-
 	}
 
 	private static bool isEarlyConfig = true;
@@ -176,16 +171,13 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 
 	private void OnDialogBoxUpdate( On.Menu.DialogBoxNotify.orig_Update orig, DialogBoxNotify self ) {
 		orig(self);
-		if ( ShouldAutoConfirm(self) && ShouldClickNow(self) ) {
+		if ( ShouldAutoConfirm(self) && ShouldClickNow(self) )
 			self.continueButton.Clicked();
-		}
 	}
-
 }
 
 
 internal class RemixOptions : OptionInterface {
-
 	public Configurable<bool> onModUpdate;
 	public Configurable<bool> onModReload;
 	public Configurable<float> delay;
@@ -200,11 +192,9 @@ internal class RemixOptions : OptionInterface {
 #pragma warning restore IDE0060
 
 	public override void Initialize() {
-
 		OpTab opTab = new(this, "Tab");
 		Tabs = [opTab];
-		UIelement[] elements =
-		[
+		UIelement[] elements = [
 			new OpLabel(new Vector2(150f, 520f), new Vector2(300f, 30f), "No Mod Update Confirm", FLabelAlignment.Center, bigText: true),
 			new OpLabel(60f, 460f, "Skip mod update confirm"),
 			new OpCheckBox(onModUpdate, new Vector2(10f, 460f)) {
@@ -220,8 +210,6 @@ internal class RemixOptions : OptionInterface {
 			}
 		];
 		opTab.AddItems(elements);
-
 	}
-
 }
 
