@@ -1,1 +1,26 @@
-/home/kevin/Proyectos/Agrupaciones/RWMods/.editorconfig
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+[*]
+	indent_style = tab
+	indent_size = tab
+	end_of_line = lf
+	charset = utf-8
+	trim_trailing_whitespace = false
+	insert_final_newline = true
+
+[*.cs]
+# New Line
+	csharp_new_line_before_open_brace = none
+	csharp_new_line_before_else = false
+	csharp_new_line_before_catch = false
+	csharp_new_line_before_finally = false
+# Indent
+	csharp_indent_case_contents_when_block = false
+# Spacing
+	csharp_space_between_parentheses = control_flow_statements, expressions
+	csharp_space_between_method_declaration_parameter_list_parentheses = true
+#	Wrap
+	csharp_preserve_single_line_statements = false
