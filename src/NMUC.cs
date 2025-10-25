@@ -25,6 +25,8 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 	internal static RemixOptions options;
 	public static new ManualLogSource Logger { get; private set; }
 
+	public static bool hasInitIssues = false;
+
 	private static readonly Dictionary<WeakReference<DialogBoxNotify>, float> trackedDialogs = [];
 	private static bool ShouldClickNow( DialogBoxNotify dialog ) {
 		List<WeakReference<DialogBoxNotify>> referencesToRemove = [];
@@ -57,7 +59,7 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 		foreach ( WeakReference<DialogBoxNotify> reference in referencesToRemove )
 			trackedDialogs.Remove(reference);
 
-		float delay = GetSkipDelay();
+		float delay = options.delay.Value;
 		if ( delay > 0.0f ) {
 			trackedDialogs.Add(new WeakReference<DialogBoxNotify>(dialog), delay);
 			return false;
@@ -67,38 +69,15 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 		}
 	}
 
-	private static bool isEarlyConfig = true;
-	private static bool earlySkipModUpdate = true;
-	private static bool earlySkipModReload = true;
-	private static float earlyDelay = 0.0f;
-
-	private static bool ShouldSkipModUpdate() {
-		if ( isEarlyConfig )
-			return earlySkipModUpdate;
-		return options.onModUpdate.Value;
-	}
-
-	private static bool ShouldSkipModReload() {
-		if ( isEarlyConfig )
-			return earlySkipModReload;
-		return options.onModReload.Value;
-	}
-
-	private static float GetSkipDelay() {
-		if ( isEarlyConfig )
-			return earlyDelay;
-		return options.delay.Value;
-	}
-
 #pragma warning disable IDE0051
 	private void OnEnable() {
 		Logger = base.Logger;
 		options = new RemixOptions(this);
 
 		On.Menu.DialogBoxNotify.Update += OnDialogBoxUpdate;
+		On.ModManager.CheckInitIssues += OnInitIssue;
 
 		On.RainWorld.OnModsInit += OnModsInit;
-		On.RainWorld.PostModsInit += OnPostModsInit;
 
 		On.Menu.InitializationScreen.ctor += OnInitializationScreen;
 		// DEBUG
@@ -119,11 +98,6 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 		orig(self);
 	}
 
-	private void OnPostModsInit( On.RainWorld.orig_PostModsInit orig, RainWorld self ) {
-		orig(self);
-		isEarlyConfig = false;
-	}
-
 	private void OnInitializationScreen( On.Menu.InitializationScreen.orig_ctor orig, InitializationScreen self, ProcessManager manager ) {
 		orig(self, manager);
 		options.config.GetConfigPath();
@@ -141,38 +115,40 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 
 				string key = words[0].Trim();
 				string value = words[1].Trim();
-				switch ( key ) {
-					case "onModUpdate":
-						try {
-							earlySkipModUpdate = bool.Parse(value);
-						} catch { }
-						break;
-					case "onModReload":
-						try {
-							earlySkipModReload = bool.Parse(value);
-						} catch { }
-						break;
-					case "delay":
-						try {
-							earlyDelay = float.Parse(value);
-						} catch { }
-						break;
-				}
+				try {
+					switch ( key ) {
+						case "onModUpdate":
+							options.onModUpdate.Value = bool.Parse(value);
+							break;
+						case "onModReload":
+							options.onModReload.Value = bool.Parse(value);
+							break;
+						case "delay":
+							options.delay.Value = float.Parse(value);
+							break;
+					}
+				} catch { }
 			}
 		}
 	}
 
 	private bool ShouldAutoConfirm( DialogBoxNotify self ) {
-		return !self.continueButton.buttonBehav.greyedOut &&
-				( self.menu is InitializationScreen || self.menu is ModdingMenu ) &&
-				 ( ShouldSkipModUpdate() && self.continueButton.signalText == "REAPPLY"
-				|| ( ShouldSkipModReload() && self.continueButton.signalText == "RESTART" ) );
+		return !hasInitIssues &&
+			!self.continueButton.buttonBehav.greyedOut &&
+			( self.menu is InitializationScreen || self.menu is ModdingMenu ) &&
+				( options.onModUpdate.Value && self.continueButton.signalText == "REAPPLY"
+			|| ( options.onModReload.Value && self.continueButton.signalText == "RESTART" ) );
 	}
 
 	private void OnDialogBoxUpdate( On.Menu.DialogBoxNotify.orig_Update orig, DialogBoxNotify self ) {
 		orig(self);
 		if ( ShouldAutoConfirm(self) && ShouldClickNow(self) )
 			self.continueButton.Clicked();
+	}
+
+	private static bool OnInitIssue( On.ModManager.orig_CheckInitIssues orig, Action<string> onIssue ) {
+		hasInitIssues = orig(onIssue);
+		return hasInitIssues;
 	}
 }
 
