@@ -29,14 +29,12 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 
 	private static readonly Dictionary<WeakReference<DialogBoxNotify>, float> trackedDialogs = [];
 	private static bool ShouldClickNow( DialogBoxNotify dialog ) {
-		List<WeakReference<DialogBoxNotify>> referencesToRemove = [];
+		PurgeDeadDialogs();
 
 		foreach ( KeyValuePair<WeakReference<DialogBoxNotify>, float> entry in trackedDialogs ) {
 			WeakReference<DialogBoxNotify> reference = entry.Key;
 			if ( reference.TryGetTarget(out DialogBoxNotify dialog2) ) {
 				if ( dialog.Equals(dialog2) ) {
-					foreach ( WeakReference<DialogBoxNotify> reference2 in referencesToRemove )
-						trackedDialogs.Remove(reference2);
 
 					float dialogTime = entry.Value;
 					if ( float.IsNegativeInfinity(dialogTime) )
@@ -52,21 +50,43 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 						return false;
 					}
 				}
-			} else
-				referencesToRemove.Add(reference);
+			}
 		}
+
+		float delay = options.delay.Value;
+		WeakReference<DialogBoxNotify> newReference = new(dialog);
+		if ( delay > 0.0f ) {
+			trackedDialogs.Add(newReference, delay);
+			return false;
+		} else {
+			trackedDialogs.Add(newReference, float.NegativeInfinity);
+			return true;
+		}
+	}
+
+	private static void MarkDialogClicked( DialogBoxNotify dialog ) {
+		PurgeDeadDialogs();
+
+		foreach ( KeyValuePair<WeakReference<DialogBoxNotify>, float> entry in trackedDialogs ) {
+			WeakReference<DialogBoxNotify> reference = entry.Key;
+			if ( reference.TryGetTarget(out DialogBoxNotify dialog2) && dialog.Equals(dialog2) ) {
+				trackedDialogs[reference] = float.NegativeInfinity;
+				return;
+			}
+		}
+
+		trackedDialogs.Add(new WeakReference<DialogBoxNotify>(dialog), float.NegativeInfinity);
+	}
+
+	private static void PurgeDeadDialogs() {
+		List<WeakReference<DialogBoxNotify>> referencesToRemove = [];
+
+		foreach ( WeakReference<DialogBoxNotify> reference in trackedDialogs.Keys )
+			if ( !reference.TryGetTarget(out _) )
+				referencesToRemove.Add(reference);
 
 		foreach ( WeakReference<DialogBoxNotify> reference in referencesToRemove )
 			trackedDialogs.Remove(reference);
-
-		float delay = options.delay.Value;
-		if ( delay > 0.0f ) {
-			trackedDialogs.Add(new WeakReference<DialogBoxNotify>(dialog), delay);
-			return false;
-		} else {
-			trackedDialogs.Add(new WeakReference<DialogBoxNotify>(dialog), float.NegativeInfinity);
-			return true;
-		}
 	}
 
 #pragma warning disable IDE0051
@@ -80,6 +100,10 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 		On.RainWorld.OnModsInit += OnModsInit;
 
 		On.Menu.InitializationScreen.ctor += OnInitializationScreen;
+		On.Menu.InitializationScreen.Singal += OnInitSingal;
+
+		On.Menu.ModdingMenu.Singal += OnModMenuSingal;
+
 		// DEBUG
 		// {
 		// 	On.Menu.InitializationScreen.Update +=
@@ -130,6 +154,28 @@ public class NoModUpdateConfirm : BaseUnityPlugin {
 				} catch { }
 			}
 		}
+	}
+
+	private void OnInitSingal( On.Menu.InitializationScreen.orig_Singal orig, InitializationScreen self, MenuObject sender, string message ) {
+		if ( message == "RESTART" || message == "REAPPLY" )
+			foreach ( MenuObject menuObject in self.pages[0].subObjects )
+				if ( menuObject is DialogBoxNotify dialog && dialog.continueButton == sender ) {
+					MarkDialogClicked(dialog);
+					break;
+				}
+
+		orig(self, sender, message);
+	}
+
+	private void OnModMenuSingal( On.Menu.ModdingMenu.orig_Singal orig, ModdingMenu self, MenuObject sender, string message ) {
+		if ( message == "RESTART" || message == "REAPPLY" )
+			foreach ( MenuObject menuObject in self.pages[0].subObjects )
+				if ( menuObject is DialogBoxNotify dialog && dialog.continueButton == sender ) {
+					MarkDialogClicked(dialog);
+					break;
+				}
+
+		orig(self, sender, message);
 	}
 
 	private bool ShouldAutoConfirm( DialogBoxNotify self ) {
